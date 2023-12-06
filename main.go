@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var romanNumerals = map[string]int{"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}
+var romanNumbers = map[string]int{"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}
 
 func main() {
 
@@ -22,8 +22,8 @@ func main() {
 	input = strings.TrimSpace(input)
 	result, error := calculator(input)
 	if error != nil {
-		fmt.Println("Вывод ошибки,", err)
-		os.Exit(1)
+		fmt.Println("Вывод ошибки,", error)
+		os.Exit(0)
 	}
 	fmt.Printf(result)
 }
@@ -31,19 +31,23 @@ func main() {
 func calculator(input string) (string, error) {
 	arg1, operator, arg2, isRoman, err := parseExpression(input)
 	if err != nil {
-		return fmt.Println("Вывод ошибки,", err)
+		return "", err
 	}
 
 	if arg1 < 1 || arg1 > 10 || arg2 < 1 || arg2 > 10 {
-		fmt.Println("Вывод ошибки, оба числа должны быть от 1 до 10 включительно")
+		return "", fmt.Errorf("Вывод ошибки, оба числа должны быть от 1 до 10 включительно")
 	}
 
-	result := performOperation(arg1, operator, arg2)
+	result, err := performOperation(arg1, operator, arg2)
+
+	if err != nil {
+		return "", err
+	}
 
 	if isRoman {
 		romanResult, romanErr := arabicToRoman(result)
 		if romanErr != nil {
-			fmt.Println("Вывод ошибки,", romanErr)
+			return "", romanErr
 		}
 		return romanResult, nil
 	} else {
@@ -74,9 +78,9 @@ func parseExpression(expr string) (int, string, int, bool, error) {
 		return 0, "", 0, false, err2
 	}
 
-	isRoman := isRomanNumeral(parts[0]) && isRomanNumeral(parts[2])
+	isRoman := isRomanNumber(parts[0]) && isRomanNumber(parts[2])
 
-	if (isRoman && !isRomanNumeral(parts[2])) || (!isRoman && isRomanNumeral(parts[2])) || (isRoman && !isRomanNumeral(parts[0])) || (!isRoman && isRomanNumeral(parts[0])) {
+	if (isRoman && !isRomanNumber(parts[2])) || (!isRoman && isRomanNumber(parts[2])) || (isRoman && !isRomanNumber(parts[0])) || (!isRoman && isRomanNumber(parts[0])) {
 		return 0, "", 0, false, fmt.Errorf("используйте либо арабские, либо римские числа")
 	}
 
@@ -84,7 +88,7 @@ func parseExpression(expr string) (int, string, int, bool, error) {
 }
 
 func parseOperand(operand string) (int, error) {
-	if isRomanNumeral(operand) {
+	if isRomanNumber(operand) {
 		return romanToInt(operand)
 	} else {
 		num, err := strconv.Atoi(operand)
@@ -95,34 +99,32 @@ func parseOperand(operand string) (int, error) {
 	}
 }
 
-func isRomanNumeral(s string) bool {
-	if _, ok := romanNumerals[s]; !ok {
+func isRomanNumber(s string) bool {
+	if _, ok := romanNumbers[s]; !ok {
 		return false
 	}
 	return true
 }
 
-func performOperation(arg1 int, operator string, arg2 int) int {
+func performOperation(arg1 int, operator string, arg2 int) (int, error) {
 	switch operator {
 	case "+":
-		return arg1 + arg2
+		return arg1 + arg2, nil
 	case "-":
-		return arg1 - arg2
+		return arg1 - arg2, nil
 	case "*":
-		return arg1 * arg2
+		return arg1 * arg2, nil
 	case "/":
-		return arg1 / arg2
+		return arg1 / arg2, nil
 	default:
-		fmt.Println("Неподдерживаемый оператор:", operator)
-		os.Exit(1)
-		return 0
+		return 0, fmt.Errorf("так как формат математической операции не удовлетворяет заданию — два операнда и один оператор (+, -, /, *).")
 	}
 }
 
 func romanToInt(s string) (int, error) {
 
-	if _, ok := romanNumerals[s]; ok {
-		return romanNumerals[s], nil
+	if _, ok := romanNumbers[s]; ok {
+		return romanNumbers[s], nil
 	} else {
 		return 0, fmt.Errorf("ошибка преобразования в число: %s", s)
 	}
@@ -132,7 +134,7 @@ func romanToInt(s string) (int, error) {
 func arabicToRoman(num int) (string, error) {
 
 	if num < 1 {
-		return "", fmt.Errorf("так как в римской системе нет отрицательных чисел. - %d", num)
+		return "", fmt.Errorf("так как в римской системе нет отрицательных чисел.")
 	}
 	romanSymbols := []string{"I", "IV", "V", "IX", "X", "XL", "L", "XC", "C"}
 	romanValues := []int{1, 4, 5, 9, 10, 40, 50, 90, 100}
